@@ -22,6 +22,9 @@ if(path==='profile'||path==='email'){let t=await token();if(!t)throw Error('Sign
  if(!records?.length)throw Error('Account profile is unavailable');return {...records[0],email:u.email,pendingEmail:u.new_email||'',expiresAt:session?.expires_at||0};
 }
 
+if(path==='my-sessions'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_my_sessions','POST',{},t)}
+if(path==='public-reviews'){let id=String(b?.product||'');if(!id||id.length>200)throw Error('Invalid product');return request('/rest/v1/ts_public_reviews?select=id,rating,body,published_at&product_id=eq.'+encodeURIComponent('"'+id.replaceAll('\\','\\\\').replaceAll('"','\\"')+'"')+'&order=published_at.desc&limit=50','GET')}
+if(path==='pro-review-moderate'){let t=await token();if(!t)throw Error('Sign in required');if(!/^[0-9a-f-]{36}$/i.test(String(b.id)))throw Error('Invalid review');return request('/rest/v1/rpc/ts_moderate_review','POST',{p_review:b.id,p_publish:b.publish===true},t)}
 if(path==='pro-ai'){let t=await token();if(!t)throw Error('Sign in required');return request('/functions/v1/techstore-ai','POST',{task:b.task,question:b.question,lang:b.lang,consent:b.consent===true},t)}
 if(path==='pro-recover'){let email=String(b?.email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error('Invalid email');let redirect=new URL('./workspace.html',location.href).href;await request('/auth/v1/recover?redirect_to='+encodeURIComponent(redirect),'POST',{email});return {ok:true}}
 if(path.startsWith('pro-')){
