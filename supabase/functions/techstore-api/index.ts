@@ -122,6 +122,15 @@ Deno.serve(async req=>{
   const data=await upstream('/rest/v1/rpc/ts_read_workspace',{method:'POST',body:JSON.stringify({p_path:path.slice(5)})},PUB,caller);
   return new Response(JSON.stringify(data),{status:200,headers});
  }
+ // Standalone debt and installment writes are now atomic ledger operations.
+ if(req.method==='POST'&&['/api/records','/api/operation'].includes(path)&&['debts','installments'].includes(b.kind)){
+  need(u);
+  if(!b.request_id)fail(400,'Refresh TechStore before recording a financial operation');
+  const caller=req.headers.get('Authorization')?.match(/^Bearer (.+)$/i)?.[1];
+  if(!caller)fail(401,'Sign in required');
+  const data=await upstream('/rest/v1/rpc/ts_legacy_finance',{method:'POST',body:JSON.stringify({p_action:path==='/api/records'?'create':'pay',p_kind:b.kind,p_args:b})},PUB,caller);
+  return new Response(JSON.stringify(data),{status:path==='/api/records'?201:200,headers});
+ }
  const r=await handle(req,path,req.method,b,u);return new Response(JSON.stringify(r.data),{status:r.status,headers});
  }catch(e){if(!e.status)console.error(String(e));return new Response(JSON.stringify({error:e.status?e.message:'Internal error'}),{status:e.status||500,headers})}
 });
