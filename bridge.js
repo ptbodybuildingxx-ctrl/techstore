@@ -14,6 +14,11 @@ if(CENTRAL){
  setInterval(()=>{if(ready&&!saving&&fingerprint()!==baseline)status('Unsaved changes / تعديلات غير محفوظة • '+revision)},1500);
  load();
 }else{
+ if(new URLSearchParams(location.search).get('role')==='admin'){db.role='admin';storeMode=false;tab='dashboard';save();render()}
+ const banner=document.createElement('div');banner.id='ts-central-bar';banner.style.cssText='padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px';
+ const note=document.createElement('strong'),back=document.createElement('a');back.href='./workspace.html';banner.append(note,back);document.body.prepend(banner);
+ function demoLabel(){note.textContent=T('حساب مدير تجريبي — البيانات محلية على هذا الجهاز فقط، لا تستخدم بيانات حقيقية.','Demo admin — data stays on this device. Do not enter real customer data.');back.textContent=T('المتجر السحابي / تفعيل الدخول لاحقاً','Cloud store / sign in later')}
+ new MutationObserver(demoLabel).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});demoLabel();
  let a=document.createElement('a');a.href='./workspace.html';a.textContent='TechStore Cloud 4.0';a.style.cssText='color:#fff;margin:0 8px';document.querySelector('.tools').append(a);
 }
 
