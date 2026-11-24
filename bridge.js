@@ -5,7 +5,7 @@ if(CENTRAL){
  const status=s=>$('#ts-state').textContent=s;
  const snapshot=()=>{let d={...db};for(let k of ['cart','shopCart','favorites','role','lang','demo'])delete d[k];return d};
  const fingerprint=()=>JSON.stringify(snapshot());
- async function remote(b){let r=await fetch('./api/state',{method:b===undefined?'GET':'POST',credentials:'same-origin',cache:'no-store',headers:b===undefined?{}:{'Content-Type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)});let d=await r.json();if(!r.ok)throw Error(d.error||r.status);return d}
+ async function remote(b){return window.tsCloud.api('state',b)}
  function locked(v){document.querySelector('.layout').inert=v;$('#ts-save').disabled=v;$('#role').style.display='none';$('#mode').style.display='none';}
  async function load(){locked(true);try{let s=await remote();let language=db.lang;db={...fresh(),...newFields(),...s.data,lang:language,role:'admin',demo:false};revision=s.revision;storeMode=false;tab='dashboard';render();baseline=fingerprint();ready=true;status('Central • revision '+revision);locked(false)}catch(e){ready=false;status(e.message);locked(true)}}
  $('#ts-load').onclick=()=>{if(saving)return;if(ready&&fingerprint()!==baseline&&!confirm('Discard unsaved changes? / تجاهل التعديلات غير المحفوظة؟'))return;load()};
