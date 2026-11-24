@@ -10,6 +10,7 @@
 - [5](v5.md)
 - [4](v4.md)
 - [3](v3.md)
+- [6.3.7 — integrated ledger, loyalty and reconciliation](v6.3.7.md)
 - [6.3.6 — protected workspace reads and legacy return guard](v6.3.6.md)
 - [6.3.5 — branch history, loyalty and reconciliation](v6.3.5.md)
 - [6.3.4 — optional owner MFA policy](v6.3.4.md)
