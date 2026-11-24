@@ -9,10 +9,22 @@ async function request(url,method='GET',body,token){const r=await fetch(base+url
 if(recoveryMode&&fragment.get('access_token'))save({access_token:fragment.get('access_token'),refresh_token:fragment.get('refresh_token'),expires_in:Number(fragment.get('expires_in'))||3600});
 let refreshing=null;
 async function token(){if(!session)return null;if(session.expires_at>Date.now()/1000+60)return session.access_token;if(!refreshing)refreshing=request('/auth/v1/token?grant_type=refresh_token','POST',{refresh_token:session.refresh_token}).then(x=>{save(x);return session.access_token}).catch(()=>{save(null);return null}).finally(()=>refreshing=null);return refreshing}
-async function api(path,b){if(recoveryMode&&!['password','logout'].includes(path))throw Error('Finish password recovery first');if(path==='login'){let x=await request('/auth/v1/token?grant_type=password','POST',{email:b.email,password:b.password});save(x);try{return await api('me')}catch(e){save(null);throw e}}
+let legacyFinancePending=null;
+async function legacyFinance(path,b){
+ const t=await token();if(!t)throw Error('Sign in required');
+ const action=path==='records'?'create':'pay',args={...b};delete args.kind;delete args.request_id;
+ const key=JSON.stringify([action,b.kind,args]);
+ if(legacyFinancePending&&legacyFinancePending.key!==key)throw Error('Retry the previous unconfirmed financial operation with identical details');
+ if(!legacyFinancePending)legacyFinancePending={key,id:b.request_id||crypto.randomUUID()};
+ const pending=legacyFinancePending;
+ try{const result=await request('/rest/v1/rpc/ts_legacy_finance','POST',{p_action:action,p_kind:b.kind,p_args:{...args,request_id:pending.id}},t);if(legacyFinancePending===pending)legacyFinancePending=null;return result}
+ catch(e){if([400,401,403,404,422].includes(e.httpStatus)&&legacyFinancePending===pending)legacyFinancePending=null;throw e}
+}
+async function api(path,b){if(recoveryMode&&!['password','logout'].includes(path))throw Error('Finish password recovery first');if(['records','operation'].includes(path)&&['debts','installments'].includes(b?.kind))return legacyFinance(path,b);
+if(path==='login'){let x=await request('/auth/v1/token?grant_type=password','POST',{email:b.email,password:b.password});save(x);try{return await api('me')}catch(e){save(null);throw e}}
 if(path==='register'){let x=await request('/auth/v1/signup','POST',{email:b.email,password:b.password,data:{name:b.name||''},gotrue_meta_security:{}});if(x.access_token){save(x);return await api('me')}return {confirmationRequired:true}}
 if(path==='password'){let t=await token();if(!t)throw Error('Sign in required');if(typeof b.password!=='string'||b.password.length<12||new TextEncoder().encode(b.password).length>72||b.password!==b.confirm)throw Error('Invalid new password');await request('/auth/v1/user','PUT',{password:b.password},t);try{await request('/auth/v1/logout?scope=global','POST',{},t)}catch{}finally{save(null);recoveryMode=false}return {ok:true}}
-if(path==='logout'){let scope=b?.scope||'local';if(!['local','others','global'].includes(scope))throw Error('Invalid session scope');let t=await token();if(!t&&scope!=='local')throw Error('Sign in again to manage sessions');if(t)await request('/auth/v1/logout?scope='+scope,'POST',{},t);if(scope!=='others'){save(null);recoveryMode=false}return {ok:true}}
+if(path==='logout'){let scope=b?.scope||'local';if(!['local','others','global'].includes(scope))throw Error('Invalid session scope');let t=await token();if(!t&&scope!=='local')throw Error('Sign in again to manage sessions');if(t)await request('/auth/v1/logout?scope='+scope,'POST',{},t);if(scope!=='others'){save(null);recoveryMode=false;legacyFinancePending=null}return {ok:true}}
 if(path==='profile'||path==='email'){let t=await token();if(!t)throw Error('Sign in required');let u=await request('/auth/v1/user','GET',undefined,t);if(!u?.id)throw Error('Sign in required');
  if(path==='email'){let email=String(b?.email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254||email===String(u.email).toLowerCase())throw Error('Choose a different valid email');let redirect=new URL('./workspace.html',location.href).href;await request('/auth/v1/user?redirect_to='+encodeURIComponent(redirect),'PUT',{email},t);return {ok:true}}
  const endpoint='/rest/v1/ts_profiles?user_id=eq.'+encodeURIComponent(u.id)+'&select=user_id,name,email,role,active,phone,avatar';
