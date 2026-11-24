@@ -113,6 +113,15 @@ Deno.serve(async req=>{
  if(!/^\/api\/[a-z]+(?:\/[a-z]+)?$/.test(path))fail(404,'Not found');
  let b={};if(req.method==='POST'){const limit=['/api/state','/api/records'].includes(path)?8000000:64000;if(Number(req.headers.get('content-length')||0)>limit)fail(413,'Payload too large');const raw=await req.text();if(new TextEncoder().encode(raw).length>limit)fail(413,'Payload too large');try{b=JSON.parse(raw)}catch{fail(400,'Invalid JSON')}if(!b||typeof b!=='object'||Array.isArray(b))fail(400,'Invalid JSON')}
  let u=path==='/api/health'||path==='/api/catalog'?null:await profile(req);
+ // Use the same authorization and data projection for all authenticated workspace reads.
+ if(req.method==='GET'&&(['/api/me','/api/stock','/api/customers','/api/account'].includes(path)||path.startsWith('/api/records/'))){
+  if(!u&&path==='/api/me')return new Response('null',{status:200,headers});
+  need(u);
+  const caller=req.headers.get('Authorization')?.match(/^Bearer (.+)$/i)?.[1];
+  if(!caller)fail(401,'Sign in required');
+  const data=await upstream('/rest/v1/rpc/ts_read_workspace',{method:'POST',body:JSON.stringify({p_path:path.slice(5)})},PUB,caller);
+  return new Response(JSON.stringify(data),{status:200,headers});
+ }
  const r=await handle(req,path,req.method,b,u);return new Response(JSON.stringify(r.data),{status:r.status,headers});
  }catch(e){if(!e.status)console.error(String(e));return new Response(JSON.stringify({error:e.status?e.message:'Internal error'}),{status:e.status||500,headers})}
 });
