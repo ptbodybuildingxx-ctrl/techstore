@@ -1,0 +1,21 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
+import {webcrypto} from 'node:crypto';
+const src=readFileSync(new URL('../sync.js',import.meta.url),'utf8');
+const m=runInNewContext(src+'\n;({tsSyncArgs,tsSyncProjected})',{crypto:webcrypto,window:{addEventListener(){}},t:(a,b)=>b});
+test('offline drafts project stock and enforce supported operations',()=>{
+ const s={role:'admin',products:[{id:'p',qty:10,price:100}],branches:[{id:'b',name:'Branch'}],stock:[]};
+ const v={owner:'u',role:'admin',snapshot:s,queue:[]};
+ const a=m.tsSyncArgs(v,{kind:'transfer',product:'p',qty:3,from:'',to:'b'});
+ assert.equal(a.expected_qty,10);assert.equal(a.expected_dst_qty,0);
+ v.queue.push({args:a,state:'pending'});
+ const b=m.tsSyncArgs(v,{kind:'sale',product:'p',qty:2,from:'b'});
+ assert.equal(b.expected_qty,3);assert.equal(b.expected_price,100);
+ v.queue.push({args:b,state:'pending'});
+ assert.equal(m.tsSyncProjected(v).stock[0].qty,1);
+ assert.equal(m.tsSyncProjected(v).products[0].qty,7);
+ assert.throws(()=>m.tsSyncArgs(v,{kind:'sale',product:'p',qty:2,from:'b'}));
+ v.role='stock';assert.throws(()=>m.tsSyncArgs(v,{kind:'pos',product:'p',qty:1}));
+});

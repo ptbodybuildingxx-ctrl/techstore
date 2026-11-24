@@ -15,6 +15,7 @@ Deno.serve(async req=>{
  try{if(req.method!=='POST')fail(405,'Method not allowed');if(!enabled||!key)fail(503,'AI not enabled by owner');
  let token=req.headers.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];if(!token)fail(401,'Sign in required');
  let u=await get('/auth/v1/user',token,'sb_publishable_b6YygUoLhEVE78WYApR7Ag_JfDIq1cz');if(!u.id||!u.email_confirmed_at)fail(401,'Sign in required');
+ let sid;try{let x=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');sid=JSON.parse(atob(x.padEnd(Math.ceil(x.length/4)*4,'='))).session_id}catch{}if(typeof sid!=='string'||!/^[0-9a-f-]{36}$/i.test(sid)||await get('/rest/v1/rpc/ts_session_valid',service,service,'POST',{p_user:u.id,p_session:sid})!==true)fail(401,'Session expired; sign in again');
  let p=(await get('/rest/v1/ts_profiles?user_id=eq.'+encodeURIComponent(u.id)+'&select=role,active',service))[0];if(!p?.active)fail(403,'Account disabled');
  let raw=await req.text();if(raw.length>10000)fail(413,'Request too large');let b;try{b=JSON.parse(raw)}catch{fail(400,'Invalid request')}
  if(!roles[p.role]?.includes(b.task)||b.consent!==true)fail(403,'Task not permitted or consent missing');

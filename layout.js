@@ -6,8 +6,8 @@ const TS_NAV_GROUPS=[
  ['finance','الإدارة المالية','Finance',['debts','installments','report']],
  ['repair','الصيانة','Repairs',['repairs','repairproof']],
  ['marketing','المتجر والتسويق','Store & marketing',['offers','coupons','membershippricing','media','builder','versions']],
- ['professional','الأدوات الاحترافية','Professional tools',['pro','ai']],
- ['admin','الحساب والأمان','Account & security',['users','audit','profile','password','signin','recover']]
+ ['professional','الأدوات الاحترافية','Professional tools',['pro','ai','sync']],
+ ['admin','الحساب والأمان','Account & security',['users','audit','profile','password','pushsettings','signin','recover']]
 ];
 let tsLayoutMode='auto',tsNavOpen=false,tsNavQuery='';
 try{let m=localStorage.getItem('ts-layout-v51');if(['auto','mobile','desktop'].includes(m))tsLayoutMode=m}catch{}
