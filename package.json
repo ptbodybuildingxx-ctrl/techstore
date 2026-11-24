@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check server.mjs && node --check workspace.js && node --check bridge.js && node --check app.js && node --check extension.js && node --check owner.js && node --check sw.js && node --check supabase-client.js && node --check modules/pro.js && node --check modules/layout.js && node --check modules/catalog-admin.js && node --check modules/operations.js && node --check modules/sync.js && node --check modules/push.js && node --check modules/invoices.js && node --check modules/business.js && node --check modules/staff.js && node --check modules/store.js"
+    "check": "node scripts/check.mjs",
+    "verify": "npm run check && npm test"
   }
 }
