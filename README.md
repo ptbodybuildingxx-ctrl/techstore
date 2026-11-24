@@ -1,8 +1,8 @@
-# TechStore 6.3.7 — Business Pro
+# TechStore 6.3.8 — Business Pro
 
 نظام متجر وإدارة محل إلكترونيات، عربي/إنجليزي، بواجهتي الحاسوب والموبايل.
 
-**[الموقع المنشور](https://ptbodybuildingxx-ctrl.github.io/techstore/workspace.html)** · [دليل الصيانة](docs/MAINTENANCE.md) · [إصدار 6.3.7](docs/releases/v6.3.7.md) · [سجل الإصدارات](docs/releases/README.md) · [الأمان](SECURITY.md)
+**[الموقع المنشور](https://ptbodybuildingxx-ctrl.github.io/techstore/workspace.html)** · [دليل الصيانة](docs/MAINTENANCE.md) · [إصدار 6.3.8](docs/releases/v6.3.8.md) · [سجل الإصدارات](docs/releases/README.md) · [الأمان](SECURITY.md)
 
 ## هيكل المشروع
 
@@ -33,5 +33,7 @@ npm run verify
 للتجربة المحلية للواجهة السحابية: استخدم خادم ملفات ثابتة على localhost:8080 وافتح workspace.html. الاتصال بمشروع Supabase الحقيقي يحتاج حسابًا مصرحًا له؛ لا تستخدم بيانات تجريبية في قاعدة الإنتاج. الخادم المحلي `npm start` يخص المسارات القديمة/SQLite.
 
 ## حدود التشغيل
+
+إصدار 6.3.8 مرشح للاستقرار وليس اعتماداً نهائياً للإنتاج. راجع [دليل الاستعادة](docs/RECOVERY.md).
 
 لا تعتبر النظام نظامًا محاسبيًا معتمدًا أو خاليًا من الثغرات. اقرأ ملاحظات الإصدار ودليل الأمان قبل إدخال بيانات مالية أو بيانات عملاء فعلية. لا تضع أسرارًا أو نسخًا احتياطية أو بيانات عملاء في هذا المستودع العام.
