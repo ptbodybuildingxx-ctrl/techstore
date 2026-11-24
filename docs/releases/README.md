@@ -10,6 +10,7 @@
 - [5](v5.md)
 - [4](v4.md)
 - [3](v3.md)
+- [6.3.3 — branch returns, loyalty and permissions](v6.3.3.md)
 - [6.3.2 — operation confirmation and repair consistency](v6.3.2.md)
 - [6.3.1 — integrated workflows](v6.3.1.md)
 - [6.3](v6.3.md)
