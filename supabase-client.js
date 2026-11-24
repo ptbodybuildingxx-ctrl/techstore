@@ -1,6 +1,7 @@
 /* Supabase public client. Only the publishable key is included. */
 window.tsCloud=(()=>{
 const base='https://jtjnbeywpfdtgohffanl.supabase.co',key='sb_publishable_b6YygUoLhEVE78WYApR7Ag_JfDIq1cz',storage='techstore-auth-v42';
+if(location.hash.includes('access_token=')||location.hash.includes('refresh_token=')){history.replaceState(null,'',location.pathname+location.search)}
 let session=null;try{session=JSON.parse(sessionStorage.getItem(storage)||'null')}catch{}
 function save(x){session=x?.access_token?{access_token:x.access_token,refresh_token:x.refresh_token,expires_at:x.expires_at||Math.floor(Date.now()/1000)+(x.expires_in||3600)}:null;try{if(session)sessionStorage.setItem(storage,JSON.stringify(session));else sessionStorage.removeItem(storage)}catch{}}
 async function request(url,method='GET',body,token){const r=await fetch(base+url,{method,headers:{apikey:key,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});let x;try{x=await r.json()}catch{x={}}if(!r.ok)throw Error(x.error_description||x.msg||x.message||x.error||'Request failed ('+r.status+')');return x}
@@ -9,7 +10,15 @@ async function token(){if(!session)return null;if(session.expires_at>Date.now()/
 async function api(path,b){if(path==='login'){let x=await request('/auth/v1/token?grant_type=password','POST',{email:b.email,password:b.password});save(x);try{return await api('me')}catch(e){save(null);throw e}}
 if(path==='register'){let x=await request('/auth/v1/signup','POST',{email:b.email,password:b.password,data:{name:b.name||''},gotrue_meta_security:{}});if(x.access_token){save(x);return await api('me')}return {confirmationRequired:true}}
 if(path==='password'){let t=await token();if(!t)throw Error('Sign in required');if(typeof b.password!=='string'||b.password.length<12||new TextEncoder().encode(b.password).length>72||b.password!==b.confirm)throw Error('Invalid new password');await request('/auth/v1/user','PUT',{password:b.password},t);try{await request('/auth/v1/logout?scope=global','POST',{},t)}catch{}finally{save(null)}return {ok:true}}
-if(path==='logout'){let t=await token();try{if(t)await request('/auth/v1/logout','POST',{},t)}finally{save(null)}return {ok:true}}
+if(path==='logout'){let scope=b?.scope||'local';if(!['local','others','global'].includes(scope))throw Error('Invalid session scope');let t=await token();if(!t&&scope!=='local')throw Error('Sign in again to manage sessions');if(t)await request('/auth/v1/logout?scope='+scope,'POST',{},t);if(scope!=='others')save(null);return {ok:true}}
+if(path==='profile'||path==='email'){let t=await token();if(!t)throw Error('Sign in required');let u=await request('/auth/v1/user','GET',undefined,t);if(!u?.id)throw Error('Sign in required');
+ if(path==='email'){let email=String(b?.email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254||email===String(u.email).toLowerCase())throw Error('Choose a different valid email');let redirect=new URL('./workspace.html',location.href).href;await request('/auth/v1/user?redirect_to='+encodeURIComponent(redirect),'PUT',{email},t);return {ok:true}}
+ const endpoint='/rest/v1/ts_profiles?user_id=eq.'+encodeURIComponent(u.id)+'&select=user_id,name,email,role,active,phone,avatar';
+ let records;if(b!==undefined){let patch={};if(Object.hasOwn(b,'name')){patch.name=String(b.name).trim();if(!patch.name||patch.name.length>200)throw Error('Invalid name')}if(Object.hasOwn(b,'phone')){patch.phone=String(b.phone).trim();if(patch.phone.length>40)throw Error('Invalid phone')}if(Object.hasOwn(b,'avatar')){patch.avatar=String(b.avatar);if(patch.avatar&&(!/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(patch.avatar)||patch.avatar.length>180000))throw Error('Invalid avatar')}if(!Object.keys(patch).length)throw Error('No fields to update');
+ const r=await fetch(base+endpoint,{method:'PATCH',headers:{apikey:key,Authorization:'Bearer '+t,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify(patch),cache:'no-store'});records=await r.json();if(!r.ok)throw Error(records.message||'Profile update failed');
+ }else records=await request(endpoint,'GET',undefined,t);
+ if(!records?.length)throw Error('Account profile is unavailable');return {...records[0],email:u.email,pendingEmail:u.new_email||'',expiresAt:session?.expires_at||0};
+}
 let t=await token();return request('/functions/v1/techstore-api?path='+encodeURIComponent('/api/'+path),b===undefined?'GET':'POST',b,t)}
 return {api};
 })();
