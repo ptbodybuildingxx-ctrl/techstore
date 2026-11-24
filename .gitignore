@@ -5,3 +5,7 @@ data/
 .env
 .env.*
 node_modules/
+backups/
+*.backup
+*.dump
+*.log

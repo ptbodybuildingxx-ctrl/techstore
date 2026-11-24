@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {webcrypto} from 'node:crypto';
-const src=readFileSync(new URL('../sync.js',import.meta.url),'utf8');
+const src=readFileSync(new URL('../modules/sync.js',import.meta.url),'utf8');
 const m=runInNewContext(src+'\n;({tsSyncArgs,tsSyncProjected})',{crypto:webcrypto,window:{addEventListener(){}},t:(a,b)=>b});
 test('offline drafts project stock and enforce supported operations',()=>{
  const s={role:'admin',products:[{id:'p',qty:10,price:100}],branches:[{id:'b',name:'Branch'}],stock:[]};

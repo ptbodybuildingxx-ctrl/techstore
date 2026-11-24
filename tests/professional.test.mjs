@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {webcrypto} from 'node:crypto';
 import {runInNewContext} from 'node:vm';
-const src=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
+const src=name=>readFileSync(new URL('../modules/'+name,import.meta.url),'utf8');
 const sandbox={crypto:webcrypto,TextEncoder,TextDecoder,Uint8Array,atob,btoa,console,document:{addEventListener(){}},t:(a,b)=>b,esc:x=>String(x??'')};
 const m=runInNewContext(src('pro.js')+'\n'+src('catalog-admin.js')+'\n;({tsProductCSV,tsProductUnique,tsBuildCheckData,tsSuggestBuild,tsEncryptBackup,tsDecryptBackup})',sandbox);
 test('CSV parses quoted fields and rejects invalid data and duplicates',()=>{

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {webcrypto} from 'node:crypto';
-const src=readFileSync(new URL('../catalog-admin.js',import.meta.url),'utf8');
+const src=readFileSync(new URL('../modules/catalog-admin.js',import.meta.url),'utf8');
 const m=runInNewContext(src+'\n;({tsProductCSV,tsProductReadSpecs,tsProductVideo,tsProductBulk,tsProductGallery})',{crypto:webcrypto,t:(a,b)=>b});
 test('new CSV metadata and canonical video link',()=>{
  const p=m.tsProductCSV('sku,name,type,price,cost,qty,brand,model,variant,video\nA,Phone,phone,200,100,2,Brand,M1,Black,https://youtu.be/dQw4w9WgXcQ')[0];
