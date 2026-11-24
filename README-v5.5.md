@@ -1,0 +1,9 @@
+# TechStore 5.5 — printable invoices and branding
+
+Owner: Account & security > Invoice settings. Customize store name, phone, address, default sale and repair titles, footer. Each new invoice allows its own title. Issued documents are immutable snapshots; settings changes do not alter historical invoices.
+
+Sales & customers > Invoices: owner/cashier creates a cash sale in USD with 1–30 distinct products, quantity, optional serial, warranty 0–120 months per line (zero means none), customer details and optional customer account. Database checks catalog price and stock, atomically records legacy sales and inventory movements, and rejects duplicate issuance using request ID. The separate legacy POS still exists; do not enter the same sale twice.
+
+Repair invoices: owner/cashier issues one final invoice per ready/delivered repair, with labor, charged parts, recorded paid amount, remaining balance, work and warranty. It does not deduct parts again, post repair revenue or payments automatically, change repair status, or create a separate warranty-register record. Warranty dates start on issue date. Linked customers can read their own new invoices; technicians read repair invoices. Reprint from saved history. Printing uses the browser's print dialog, including Save as PDF when supported; paper layout is general-purpose, not a tested thermal printer template. No tax/e-invoicing certification.
+
+SQL rollback tests passed configurable branding and titles, sale stock deduction, retry idempotency, warranty expiration, repair totals and anonymous access rejection. Syntax and print markup checks passed. Actual authenticated browser issuance, physical printing and production end-to-end tests not performed. No real invoices/settings changed by rollback tests. The feature uses a new restricted RPC, no Edge Function redeploy required.
