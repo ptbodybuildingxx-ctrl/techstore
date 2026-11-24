@@ -1,11 +1,11 @@
 /* TechStore navigation shell. It changes presentation only, never grants access. */
 const TS_NAV_GROUPS=[
- ['overview','نظرة عامة','Overview',['home','shop','advisor','compare','cart','account']],
- ['sales','المبيعات والعملاء','Sales & customers',['pos','orders','warranty']],
- ['stock','المخزون والمشتريات','Inventory & purchasing',['products','inventory','purchases','suppliers','used','returns']],
+ ['overview','نظرة عامة','Overview',['home','shop','advisor','compare','cart','guesttracking','account','productalerts']],
+ ['sales','المبيعات والعملاء','Sales & customers',['pos','orders','guestorders','warranty']],
+ ['stock','المخزون والمشتريات','Inventory & purchasing',['products','inventory','branchstock','purchases','suppliers','used','returns']],
  ['finance','الإدارة المالية','Finance',['debts','installments','report']],
- ['repair','الصيانة','Repairs',['repairs']],
- ['marketing','المتجر والتسويق','Store & marketing',['offers','coupons','media','builder','versions']],
+ ['repair','الصيانة','Repairs',['repairs','repairproof']],
+ ['marketing','المتجر والتسويق','Store & marketing',['offers','coupons','membershippricing','media','builder','versions']],
  ['professional','الأدوات الاحترافية','Professional tools',['pro','ai']],
  ['admin','الحساب والأمان','Account & security',['users','audit','profile','password','signin','recover']]
 ];

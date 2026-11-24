@@ -25,6 +25,20 @@ if(path==='profile'||path==='email'){let t=await token();if(!t)throw Error('Sign
 if(path==='my-sessions'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_my_sessions','POST',{},t)}
 if(path==='public-reviews'){let id=String(b?.product||'');if(!id||id.length>200)throw Error('Invalid product');return request('/rest/v1/ts_public_reviews?select=id,rating,body,published_at&product_id=eq.'+encodeURIComponent('"'+id.replaceAll('\\','\\\\').replaceAll('"','\\"')+'"')+'&order=published_at.desc&limit=50','GET')}
 if(path==='pro-review-moderate'){let t=await token();if(!t)throw Error('Sign in required');if(!/^[0-9a-f-]{36}$/i.test(String(b.id)))throw Error('Invalid review');return request('/rest/v1/rpc/ts_moderate_review','POST',{p_review:b.id,p_publish:b.publish===true},t)}
+if(path==='catalog'){
+ const cacheKey='techstore-public-catalog-v52';
+ try{let result=await request('/functions/v1/techstore-api?path=%2Fapi%2Fcatalog','GET');try{let snapshot={at:Date.now(),products:(result.products||[]).slice(0,300).map(p=>({id:String(p.id),name:String(p.name||''),nameEn:String(p.nameEn||''),type:String(p.type||''),sku:String(p.sku||''),price:Number(p.price)||0,qty:Number(p.qty)||0,specs:p.specs||{}})),maintenance:result.maintenance===true,currency:result.currency||'USD'};let raw=JSON.stringify(snapshot);if(raw.length<500000)localStorage.setItem(cacheKey,raw);else localStorage.removeItem(cacheKey)}catch{}return result}
+ catch(e){if(navigator.onLine!==false)throw e;let saved;try{saved=JSON.parse(localStorage.getItem(cacheKey)||'null')}catch{}if(!saved||Date.now()-saved.at>7*86400000||!Array.isArray(saved.products))throw e;return {...saved,site:null,media:[],offers:[],offline:true}}
+}
+if(path==='ops-guest'){const publicAction=['submit','status'].includes(b.action);let t=publicAction?undefined:await token();if(!publicAction&&!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_guest_request','POST',{p_action:b.action,p_args:b.args||{}},t)}
+if(path==='ops-members'||path==='ops-checkout'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/'+(path==='ops-members'?'ts_member_settings':'ts_member_checkout'),'POST',{p_action:b.action,p_args:b.args||{}},t)}
+if(path.startsWith('ops-')){
+ let t=await token();if(!t)throw Error('Sign in required');
+ if(path==='ops-branch'||path==='ops-repair'){const fn=path==='ops-branch'?'ts_branch_operation':'ts_repair_evidence_action';return request('/rest/v1/rpc/'+fn,'POST',{p_action:b.action,p_args:b.args||{}},t)}
+ if(path==='ops-alerts')return request('/rest/v1/ts_product_alert_events?select=id,product_name,kind,new_price,created_at,seen&order=created_at.desc&limit=100','GET',undefined,t);
+ if(path==='ops-alert-seen'){if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(b.id)))throw Error('Invalid alert');return request('/rest/v1/ts_product_alert_events?id=eq.'+encodeURIComponent(b.id),'PATCH',{seen:true},t)}
+ throw Error('Unknown operation')
+}
 if(path==='pro-ai'){let t=await token();if(!t)throw Error('Sign in required');return request('/functions/v1/techstore-ai','POST',{task:b.task,question:b.question,lang:b.lang,consent:b.consent===true},t)}
 if(path==='pro-recover'){let email=String(b?.email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error('Invalid email');let redirect=new URL('./workspace.html',location.href).href;await request('/auth/v1/recover?redirect_to='+encodeURIComponent(redirect),'POST',{email});return {ok:true}}
 if(path.startsWith('pro-')){
