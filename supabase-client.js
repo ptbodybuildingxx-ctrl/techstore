@@ -57,6 +57,7 @@ if(path==='business-reconcile'){let t=await token();if(!t)throw Error('Sign in r
 if(path==='business-summary'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_business_summary','POST',{},t)}
 if(path==='repair-workflow'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_repair_workflow','POST',{p_action:b.action,p_args:b.args||{}},t)}
 if(path==='business'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_business_action','POST',{p_action:b.action,p_args:b.args||{}},t)}
+if(path==='pos-loyalty-quote'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_pos_loyalty_quote','POST',{p_customer:b.customer_id,p_subtotal:b.subtotal,p_points:b.points},t)}
 if(path==='invoice'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_invoice_action','POST',{p_action:b.action,p_args:b.args||{}},t)}
 if(path==='push'||path==='sync'){let t=await token();if(!t)throw Error('Sign in required');if(path==='push')return request('/functions/v1/techstore-push','POST',b,t);return request('/rest/v1/rpc/ts_sync_operation','POST',{p_action:b.action,p_args:b.args||{}},t)}
 if(path==='ops-guest'){const publicAction=['submit','status'].includes(b.action);let t=publicAction?undefined:await token();if(!publicAction&&!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_guest_request','POST',{p_action:b.action,p_args:b.args||{}},t)}
