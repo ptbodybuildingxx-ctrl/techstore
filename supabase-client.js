@@ -41,6 +41,7 @@ if(path==='operation-status'){let t=await token();if(!t)throw Error('Sign in req
 if(path==='pay-staff'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_pay_staff_statement','POST',{p_id:b.id},t)}
 if(path==='adjustment'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_invoice_adjustment','POST',{p_action:b.action,p_args:b.args||{}},t)}
 if(path==='refund'||path==='installment-schedule'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/'+(path==='refund'?'ts_invoice_refund':'ts_installment_schedule'),'POST',path==='refund'?{p_action:b.action,p_args:b.args||{}}:{p_id:b.id||null},t)}
+if(path==='business-reconcile'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_reconcile_business','POST',{},t)}
 if(path==='business-summary'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_business_summary','POST',{},t)}
 if(path==='repair-workflow'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_repair_workflow','POST',{p_action:b.action,p_args:b.args||{}},t)}
 if(path==='business'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_business_action','POST',{p_action:b.action,p_args:b.args||{}},t)}
