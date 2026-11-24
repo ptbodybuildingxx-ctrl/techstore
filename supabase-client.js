@@ -8,6 +8,7 @@ let refreshing=null;
 async function token(){if(!session)return null;if(session.expires_at>Date.now()/1000+60)return session.access_token;if(!refreshing)refreshing=request('/auth/v1/token?grant_type=refresh_token','POST',{refresh_token:session.refresh_token}).then(x=>{save(x);return session.access_token}).catch(()=>{save(null);return null}).finally(()=>refreshing=null);return refreshing}
 async function api(path,b){if(path==='login'){let x=await request('/auth/v1/token?grant_type=password','POST',{email:b.email,password:b.password});save(x);try{return await api('me')}catch(e){save(null);throw e}}
 if(path==='register'){let x=await request('/auth/v1/signup','POST',{email:b.email,password:b.password,data:{name:b.name||''},gotrue_meta_security:{}});if(x.access_token){save(x);return await api('me')}return {confirmationRequired:true}}
+if(path==='password'){let t=await token();if(!t)throw Error('Sign in required');if(typeof b.password!=='string'||b.password.length<12||new TextEncoder().encode(b.password).length>72||b.password!==b.confirm)throw Error('Invalid new password');await request('/auth/v1/user','PUT',{password:b.password},t);try{await request('/auth/v1/logout?scope=global','POST',{},t)}catch{}finally{save(null)}return {ok:true}}
 if(path==='logout'){let t=await token();try{if(t)await request('/auth/v1/logout','POST',{},t)}finally{save(null)}return {ok:true}}
 let t=await token();return request('/functions/v1/techstore-api?path='+encodeURIComponent('/api/'+path),b===undefined?'GET':'POST',b,t)}
 return {api};
