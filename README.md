@@ -1,8 +1,8 @@
-# TechStore 6.3.5 — Business Pro
+# TechStore 6.3.6 — Business Pro
 
 نظام متجر وإدارة محل إلكترونيات، عربي/إنجليزي، بواجهتي الحاسوب والموبايل.
 
-**[الموقع المنشور](https://ptbodybuildingxx-ctrl.github.io/techstore/workspace.html)** · [دليل الصيانة](docs/MAINTENANCE.md) · [إصدار 6.3](docs/releases/v6.3.5.md) · [سجل الإصدارات](docs/releases/README.md) · [الأمان](SECURITY.md)
+**[الموقع المنشور](https://ptbodybuildingxx-ctrl.github.io/techstore/workspace.html)** · [دليل الصيانة](docs/MAINTENANCE.md) · [إصدار 6.3](docs/releases/v6.3.6.md) · [سجل الإصدارات](docs/releases/README.md) · [الأمان](SECURITY.md)
 
 ## هيكل المشروع
 

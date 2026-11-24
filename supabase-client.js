@@ -72,6 +72,6 @@ if(path.startsWith('pro-')){
  throw Error('Unknown operation')
 }
 
-let t=await token();if(path==='me'&&t){let m=await api('mfa-status');if(m.required&&!m.elevated)return {mfaRequired:true,mfa:m}}return request('/functions/v1/techstore-api?path='+encodeURIComponent('/api/'+path),b===undefined?'GET':'POST',b,t)}
+let t=await token();if(path==='me'&&t){let m=await api('mfa-status');if(m.required&&!m.elevated)return {mfaRequired:true,mfa:m}}if(b===undefined&&(['me','stock','customers','account'].includes(path)||path.startsWith('records/'))){if(!t){if(path==='me')return null;throw Error('Sign in required')}return request('/rest/v1/rpc/ts_read_workspace','POST',{p_path:path},t)}return request('/functions/v1/techstore-api?path='+encodeURIComponent('/api/'+path),b===undefined?'GET':'POST',b,t)}
 return {api,isRecovery:()=>recoveryMode};
 })();
