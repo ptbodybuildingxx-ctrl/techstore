@@ -1,0 +1,26 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {webcrypto} from 'node:crypto';
+import {runInNewContext} from 'node:vm';
+const source=readFileSync(new URL('../modules/sync.js',import.meta.url),'utf8');
+const body=source.slice(source.indexOf('/* Durable request identity'));
+test('persisted ID survives lost response; changed payload and account isolation',async()=>{
+ const env=runInNewContext("let user={id:'a'}, navigator={onLine:true},t=(a,b)=>b,tsInvoicePending=null,tsBusinessPending=null,tsPurchasePending=null,tsSupplierPending=null,tsBranchPending=null,tsRepairPending=null,tsMemberPending=null;\n"+body+"\n;({call:tsPendingCall,hash:tsPendingHash,setUser:x=>user={id:x},useStore:f=>tsPendingChange=f})",{crypto:webcrypto,TextEncoder});
+ const rows=new Map();
+ env.useStore(async(key,fn)=>{const x=fn(rows.get(key)||null);if(x.write===null)rows.delete(key);else if(x.write)rows.set(key,x.write);return x.result});
+ const req=(id,qty=1)=>({action:'sale',args:{request_id:id,items:[{product:'p',qty}]}});
+ assert.equal(await env.hash(req('first').args),await env.hash(req('other').args));
+ await assert.rejects(env.call('invoice',req('first'),async()=>{throw Error('network lost')}));
+ assert.equal(rows.size,1);
+ await assert.rejects(env.call('invoice',req('other',2),async()=>({id:'wrong'})),/earlier operation/);
+ await env.call('invoice',req('other'),async(p,b)=>{assert.equal(b.args.request_id,'first');return {id:'saved'}});
+ assert.equal(rows.size,0);
+ await assert.rejects(env.call('invoice',req('rejected'),async()=>{throw Object.assign(Error('invalid'),{httpStatus:400,pgCode:'P0001'})}));
+ assert.equal(rows.size,0);
+ await assert.rejects(env.call('invoice',req('uncertain'),async()=>({})));
+ assert.equal(rows.size,1);
+ env.setUser('b');
+ await env.call('invoice',req('separate'),async(p,b)=>{assert.equal(b.args.request_id,'separate');return {id:'saved-b'}});
+ assert.equal(rows.size,1);
+});

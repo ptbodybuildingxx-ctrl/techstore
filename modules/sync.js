@@ -37,3 +37,44 @@ else if(a==='sync-discard'){let i=next.queue.findIndex(r=>r.args.request_id===id
 else if(a==='sync-rebase'){let row=next.queue[0];if(!tsSyncCanReplay()||row?.args.request_id!==id||row.state!=='conflict'||row.conflict?.reason!=='stock_or_price_changed')throw Error('Conflict not eligible');let r=row.conflict,a=row.args;if(a.kind!=='count'&&Number(r.actual_qty)<a.qty)throw Error(t('لا تكفي الكمية الحالية؛ احذف المسودة وأعد إدخالها.','Insufficient current stock; discard and enter a new draft.'));if(!confirm(t('الكمية الحالية: ','Current qty: ')+r.actual_qty+'\n'+t('السعر الحالي: ','Current price: ')+money(r.actual_price)+'\n'+t('اعتماد القيم الحالية وإعادة المحاولة؟','Use current values and retry?')))return;row.args={...a,request_id:crypto.randomUUID(),expected_qty:Number(r.actual_qty),expected_dst_qty:Number(r.actual_dst_qty),expected_price:Number(r.actual_price)};row.state='pending';delete row.conflict;await tsSyncPersist(next)}
 await render();if(a==='sync-rebase')await tsSyncReplay()}
 window.addEventListener('online',()=>{if(tsSyncCanReplay())tsSyncReplay().catch(e=>msg(e.message))});
+
+
+/* Durable request identity for online operations. Only fingerprints and UUIDs,
+   not request bodies or credentials, are retained in the device database. */
+const tsPendingScopes=new Set(['invoice:sale','invoice:repair','business:receipt','business:cash_in','business:expense','adjustment:apply','refund:refund','supplier-finance:purchase','supplier-finance:payment','ops-branch:transfer','ops-branch:sale','ops-repair:add','ops-checkout:order']);
+let tsPendingDb=null;
+function tsPendingOpen(){if(tsPendingDb)return tsPendingDb;tsPendingDb=new Promise((resolve,reject)=>{let r=indexedDB.open('techstore-request-confirmations-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('requests',{keyPath:'key'});r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.onblocked=()=>reject(Error('Request storage blocked'))}).catch(e=>{tsPendingDb=null;throw e});return tsPendingDb}
+function tsPendingCanonical(v){if(Array.isArray(v))return v.map(tsPendingCanonical);if(v!==null&&typeof v==='object')return Object.fromEntries(Object.keys(v).sort().filter(k=>v[k]!==undefined).map(k=>[k,tsPendingCanonical(v[k])]));return v}
+async function tsPendingHash(args){let {request_id,...body}=args;let bytes=new TextEncoder().encode(JSON.stringify(tsPendingCanonical(body)));let hash=await crypto.subtle.digest('SHA-256',bytes);return Array.from(new Uint8Array(hash),x=>x.toString(16).padStart(2,'0')).join('')}
+async function tsPendingChange(key,change){let db=await tsPendingOpen();return new Promise((resolve,reject)=>{let tx=db.transaction('requests','readwrite'),st=tx.objectStore('requests'),r=st.get(key),out,err;r.onsuccess=()=>{try{let next=change(r.result||null);out=next.result;if(next.write===null)st.delete(key);else if(next.write)st.put(next.write)}catch(e){err=e;tx.abort()}};tx.oncomplete=()=>resolve(out);tx.onabort=()=>reject(err||tx.error||Error('Request storage failed'));tx.onerror=()=>reject(tx.error)})}
+async function tsPendingClaim(owner,scope,hash,id){let key=owner+'|'+scope;return tsPendingChange(key,old=>{if(old){if(old.hash!==hash)throw Error(t('هناك عملية سابقة غير مؤكدة. تحقق من نتيجتها أولاً أو أعد إرسال نفس البيانات.','An earlier operation is unconfirmed. Check its result first or retry identical data.'));return {result:{...old,fresh:false}}}let row={key,owner,scope,hash,id,created:Date.now()};return {write:row,result:{...row,fresh:true}}})}
+async function tsPendingClear(row){return tsPendingChange(row.key,old=>old?.id===row.id?{write:null,result:true}:{result:false})}
+async function tsPendingList(owner){let db=await tsPendingOpen();return new Promise((resolve,reject)=>{let r=db.transaction('requests','readonly').objectStore('requests').getAll();r.onsuccess=()=>resolve((r.result||[]).filter(x=>x.owner===owner&&tsPendingScopes.has(x.scope)));r.onerror=()=>reject(r.error)})}
+function tsPendingLock(key,fn){return typeof navigator.locks?.request==='function'?navigator.locks.request('techstore-request:'+key,fn):fn()}
+function tsPendingDefinite(e){return Number(e.httpStatus)===400&&/^(P0001|22[A-Z0-9]{3}|23[A-Z0-9]{3}|42501)$/.test(String(e.pgCode||''))||Number(e.httpStatus)===403&&e.pgCode==='42501'}
+async function tsPendingCall(path,b,send){let scope=path+':'+b?.action;if(!tsPendingScopes.has(scope)||!b?.args?.request_id)return send(path,b);
+ let owner=user?.id;if(!owner||!navigator.onLine)throw Error(t('اتصل بالإنترنت وسجل الدخول أولاً','Sign in and connect first'));
+ let hash=await tsPendingHash(b.args),key=owner+'|'+scope;
+ return tsPendingLock(key,async()=>{let row=await tsPendingClaim(owner,scope,hash,b.args.request_id);
+ try{let result=await send(path,{...b,args:{...b.args,request_id:row.id}});if(!result||typeof result!=='object'||Array.isArray(result)||(!result.id&&result.ok!==true))throw Error('Unconfirmed server response');await tsPendingClear(row);return result}catch(e){if(row.fresh&&tsPendingDefinite(e)){await tsPendingClear(row);tsPendingResetTransient(scope)}throw e}
+ })}
+const tsPendingLabels={'invoice:sale':['فاتورة بيع','Sale invoice'],'invoice:repair':['فاتورة صيانة','Repair invoice'],'business:receipt':['سند قبض','Receipt'],'business:cash_in':['إيداع','Cash deposit'],'business:expense':['سند صرف','Expense'],'adjustment:apply':['تسوية فاتورة','Invoice adjustment'],'refund:refund':['إرجاع فاتورة','Invoice refund'],'supplier-finance:purchase':['شراء','Purchase'],'supplier-finance:payment':['دفعة مورد','Supplier payment'],'ops-branch:transfer':['نقل مخزون','Transfer'],'ops-branch:sale':['بيع فرع','Branch sale'],'ops-repair:add':['توثيق صيانة','Repair evidence'],'ops-checkout:order':['طلب متجر','Store order']};
+async function tsPendingPanel(){if(!user?.id)return '';try{let rows=await tsPendingList(user.id);if(!rows.length)return '';return card(t('عمليات لم يصل تأكيدها','Unconfirmed operations'),proNote(t('لا تسجل عملية بديلة قبل التحقق. يعرض الخادم إن كانت العملية مسجلة فعلاً. إذا لم يجدها، يبقى المرجع محفوظاً لإعادة نفس البيانات؛ عدم العثور ليس إثبات فشل نهائي.','Do not enter a replacement before checking. The server confirms recorded operations. If not found, the ID remains available for an identical retry; not found is not proof of final failure.'))+rows.map(r=>info(t(...tsPendingLabels[r.scope])+' · '+new Date(r.created).toLocaleString()+' · '+r.id)+button('تحقق من الخادم','Check server','sync-confirm-online',r.scope)).join(''))}catch{return info(t('تعذر فتح سجل تأكيد العمليات على الجهاز. قد تُرفض عمليات مالية جديدة لحين إتاحة التخزين.','Could not open device confirmation storage. Financial operations may be blocked until storage is available.'))}}
+async function tsPendingCheck(scope){let owner=user?.id;if(!owner||!tsPendingScopes.has(scope)||!navigator.onLine)throw Error('Sign in and connect first');let key=owner+'|'+scope;
+ await tsPendingLock(key,async()=>{let row=(await tsPendingList(owner)).find(x=>x.scope===scope);if(!row)return;let r=await api('operation-status',{scope,id:row.id});if(!r.applied){msg(t('لم يجد الخادم العملية. أعد نفس البيانات؛ لا تنشئ عملية بديلة بعد.','Server has not found the operation. Retry identical data; do not create a replacement yet.'));return}
+ if(!confirm(t('العملية مسجلة. المرجع: ','Operation recorded. Reference: ')+r.reference+'\n'+t('تأكيد استلام النتيجة وإزالة التنبيه؟','Acknowledge the result and remove the warning?')))return;
+ await tsPendingClear(row);
+ tsPendingResetTransient(scope);
+ if(scope==='ops-checkout:order'){tsCartClear();page='account'}
+ await render();msg(t('تم تأكيد العملية: ','Confirmed operation: ')+r.reference);
+ })}
+
+function tsPendingResetTransient(scope){
+ if(scope.startsWith('invoice:'))tsInvoicePending=null;
+ if(scope.startsWith('business:')||scope.startsWith('adjustment:')||scope.startsWith('refund:'))tsBusinessPending=null;
+ if(scope==='supplier-finance:purchase')tsPurchasePending=null;
+ if(scope==='supplier-finance:payment')tsSupplierPending=null;
+ if(scope.startsWith('ops-branch:'))tsBranchPending=null;
+ if(scope==='ops-repair:add')tsRepairPending=null;
+ if(scope==='ops-checkout:order')tsMemberPending=null;
+}
