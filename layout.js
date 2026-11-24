@@ -1,13 +1,13 @@
 /* TechStore navigation shell. It changes presentation only, never grants access. */
 const TS_NAV_GROUPS=[
  ['overview','نظرة عامة','Overview',['home','shop','advisor','compare','cart','guesttracking','account','productalerts']],
- ['sales','المبيعات والعملاء','Sales & customers',['pos','invoices','orders','guestorders','warranty']],
+ ['sales','المبيعات والعملاء','Sales & customers',['pos','invoices','orders','guestorders','warranty','invoicewarranties']],
  ['stock','المخزون والمشتريات','Inventory & purchasing',['products','inventory','branchstock','purchases','suppliers','used','returns']],
- ['finance','الإدارة المالية','Finance',['debts','installments','report']],
- ['repair','الصيانة','Repairs',['repairs','repairproof']],
+ ['finance','الإدارة المالية','Finance',['business','debts','installments','report']],
+ ['repair','الصيانة','Repairs',['repairs','repairproof','repairintake']],
  ['marketing','المتجر والتسويق','Store & marketing',['offers','coupons','membershippricing','media','builder','versions']],
  ['professional','الأدوات الاحترافية','Professional tools',['pro','ai','sync']],
- ['admin','الحساب والأمان','Account & security',['invoicesettings','users','audit','profile','password','pushsettings','signin','recover']]
+ ['admin','الحساب والأمان','Account & security',['invoicesettings','businessbrand','users','audit','profile','password','pushsettings','signin','recover']]
 ];
 let tsLayoutMode='auto',tsNavOpen=false,tsNavQuery='';
 try{let m=localStorage.getItem('ts-layout-v51');if(['auto','mobile','desktop'].includes(m))tsLayoutMode=m}catch{}

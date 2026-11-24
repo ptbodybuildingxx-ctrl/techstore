@@ -1,6 +1,6 @@
 {
   "name": "techstore-pwa",
-  "version": "5.5.0",
+  "version": "6.0.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,6 +9,6 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check server.mjs && node --check workspace.js && node --check bridge.js && node --check app.js && node --check extension.js && node --check owner.js && node --check sw.js && node --check supabase-client.js && node --check pro.js && node --check layout.js && node --check catalog-admin.js && node --check operations.js && node --check sync.js && node --check push.js && node --check invoices.js"
+    "check": "node --check server.mjs && node --check workspace.js && node --check bridge.js && node --check app.js && node --check extension.js && node --check owner.js && node --check sw.js && node --check supabase-client.js && node --check pro.js && node --check layout.js && node --check catalog-admin.js && node --check operations.js && node --check sync.js && node --check push.js && node --check invoices.js && node --check business.js"
   }
 }
