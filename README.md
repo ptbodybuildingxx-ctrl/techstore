@@ -2,9 +2,11 @@
 
 نظام متجر وإدارة محل إلكترونيات، عربي/إنجليزي، بواجهتي الحاسوب والموبايل.
 
-**[الموقع المنشور](https://ptbodybuildingxx-ctrl.github.io/techstore/workspace.html)** · [دليل الصيانة](docs/MAINTENANCE.md) · [إصدار 6.3](docs/releases/v6.3.7.md) · [سجل الإصدارات](docs/releases/README.md) · [الأمان](SECURITY.md)
+**[الموقع المنشور](https://ptbodybuildingxx-ctrl.github.io/techstore/workspace.html)** · [دليل الصيانة](docs/MAINTENANCE.md) · [إصدار 6.3.7](docs/releases/v6.3.7.md) · [سجل الإصدارات](docs/releases/README.md) · [الأمان](SECURITY.md)
 
 ## هيكل المشروع
+
+[فهرس التوثيق](docs/README.md) · [صيانة الخلفية](supabase/README.md) · [الاختبارات](tests/README.md)
 
 - `workspace.html`, `workspace.js`, `workspace.css`: واجهة العمل السحابية الأساسية.
 - `modules/`: وحدات مستقلة حسب الوظيفة.
@@ -12,6 +14,8 @@
 - `supabase/functions/`: الوظائف الخلفية المنشورة.
 - `supabase/migrations/`: تغييرات قاعدة البيانات بالترتيب التاريخي.
 - `tests/`: الاختبارات البرمجية.
+- `scripts/`: أدوات الصيانة والتحقق التلقائي.
+- `.github/`: فحص CI وقائمة مراجعة التعديلات.
 - `docs/`: التوثيق، الإصدارات السابقة، وتعديلات الخلفية غير المنشورة.
 - `sw.js`, `manifest.webmanifest`, `icon-*.png`: PWA.
 - `index.html`, `app.js`, `owner.js`, `extension.js`, `bridge.js`, `style.css`: واجهة قديمة/تجريبية، ليست بديلًا آمنًا عن السحابة.
@@ -21,9 +25,10 @@
 
 Node.js 24:
 ```sh
-npm run check
-npm test
+npm run verify
 ```
+
+يعمل GitHub Actions على الفحص نفسه عند التحديثات وطلبات الدمج. لا يتصل هذا الفحص بقاعدة الإنتاج.
 
 للتجربة المحلية للواجهة السحابية: استخدم خادم ملفات ثابتة على localhost:8080 وافتح workspace.html. الاتصال بمشروع Supabase الحقيقي يحتاج حسابًا مصرحًا له؛ لا تستخدم بيانات تجريبية في قاعدة الإنتاج. الخادم المحلي `npm start` يخص المسارات القديمة/SQLite.
 
