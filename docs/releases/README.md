@@ -10,5 +10,6 @@
 - [5](v5.md)
 - [4](v4.md)
 - [3](v3.md)
-- [6.2 — current](v6.2.md)
+- [6.3 — current](v6.3.md)
+- [6.2 — organization, employees and store identity](v6.2.md)
 - [2.0](v2.md)
