@@ -22,6 +22,11 @@ if(path==='profile'||path==='email'){let t=await token();if(!t)throw Error('Sign
  if(!records?.length)throw Error('Account profile is unavailable');return {...records[0],email:u.email,pendingEmail:u.new_email||'',expiresAt:session?.expires_at||0};
 }
 
+if(path==='mfa-status'||path==='mfa-policy'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_mfa_settings','POST',{p_action:path==='mfa-policy'?'save':'get',p_mode:path==='mfa-policy'?b.mode:null},t)}
+if(path==='mfa-enroll'||path==='mfa-verify'||path==='mfa-remove'){let t=await token();if(!t)throw Error('Sign in required');let state=await api('mfa-status');if(path==='mfa-enroll'){if(state.verified&&!state.elevated)throw Error('Verify your existing factor first');return request('/auth/v1/factors','POST',{factor_type:'totp',friendly_name:String(b?.name||'TechStore').trim().slice(0,64),issuer:'TechStore'},t)}
+let factor=state.factors.find(f=>f.id===b.id&&f.type==='totp');if(!factor)throw Error('Unknown authenticator');let url='/auth/v1/factors/'+encodeURIComponent(factor.id);
+if(path==='mfa-verify'){if(!/^\d{6}$/.test(String(b.code)))throw Error('Enter a six-digit code');let challenge=await request(url+'/challenge','POST',{},t);if(!challenge?.id)throw Error('Challenge unavailable');let x=await request(url+'/verify','POST',{challenge_id:challenge.id,code:String(b.code)},t);if(!x?.access_token||!x?.refresh_token)throw Error('Verification response unavailable');save(x);return api('mfa-status')}
+let mandatory=state.mode==='staff'&&['admin','cashier','stock','tech'].includes(state.role)||state.mode==='admin'&&state.role==='admin';if(factor.status==='verified'&&(!state.elevated||mandatory&&state.factors.filter(f=>f.status==='verified').length<=1))throw Error('Change the required policy before removing the last verified authenticator');await request(url,'DELETE',undefined,t);if(session?.refresh_token){let x=await request('/auth/v1/token?grant_type=refresh_token','POST',{refresh_token:session.refresh_token});save(x)}return api('mfa-status')}
 if(path==='my-sessions'){let t=await token();if(!t)throw Error('Sign in required');return request('/rest/v1/rpc/ts_my_sessions','POST',{},t)}
 if(path==='public-reviews'){let id=String(b?.product||'');if(!id||id.length>200)throw Error('Invalid product');return request('/rest/v1/ts_public_reviews?select=id,rating,body,published_at&product_id=eq.'+encodeURIComponent('"'+id.replaceAll('\\','\\\\').replaceAll('"','\\"')+'"')+'&order=published_at.desc&limit=50','GET')}
 if(path==='pro-review-moderate'){let t=await token();if(!t)throw Error('Sign in required');if(!/^[0-9a-f-]{36}$/i.test(String(b.id)))throw Error('Invalid review');return request('/rest/v1/rpc/ts_moderate_review','POST',{p_review:b.id,p_publish:b.publish===true},t)}
@@ -66,6 +71,6 @@ if(path.startsWith('pro-')){
  throw Error('Unknown operation')
 }
 
-let t=await token();return request('/functions/v1/techstore-api?path='+encodeURIComponent('/api/'+path),b===undefined?'GET':'POST',b,t)}
+let t=await token();if(path==='me'&&t){let m=await api('mfa-status');if(m.required&&!m.elevated)return {mfaRequired:true,mfa:m}}return request('/functions/v1/techstore-api?path='+encodeURIComponent('/api/'+path),b===undefined?'GET':'POST',b,t)}
 return {api,isRecovery:()=>recoveryMode};
 })();
