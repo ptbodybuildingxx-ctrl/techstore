@@ -13,6 +13,8 @@ let legacyFinancePending=null;
 async function legacyFinance(path,b){
  const t=await token();if(!t)throw Error('Sign in required');
  const action=path==='records'?'create':'pay',args={...b};delete args.kind;delete args.request_id;
+ // Workspace supplies a durable request ID; its confirmation store owns retries.
+ if(b.request_id)return request('/rest/v1/rpc/ts_legacy_finance','POST',{p_action:action,p_kind:b.kind,p_args:{...args,request_id:b.request_id}},t);
  const key=JSON.stringify([action,b.kind,args]);
  if(legacyFinancePending&&legacyFinancePending.key!==key)throw Error('Retry the previous unconfirmed financial operation with identical details');
  if(!legacyFinancePending)legacyFinancePending={key,id:b.request_id||crypto.randomUUID()};
