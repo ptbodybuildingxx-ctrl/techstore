@@ -1,16 +1,18 @@
 /* Supabase public client. Only the publishable key is included. */
 window.tsCloud=(()=>{
 const base='https://jtjnbeywpfdtgohffanl.supabase.co',key='sb_publishable_b6YygUoLhEVE78WYApR7Ag_JfDIq1cz',storage='techstore-auth-v42';
+const fragment=new URLSearchParams(location.hash.slice(1));let recoveryMode=fragment.get('type')==='recovery'&&!!fragment.get('access_token')&&!!fragment.get('refresh_token');
 if(location.hash.includes('access_token=')||location.hash.includes('refresh_token=')){history.replaceState(null,'',location.pathname+location.search)}
-let session=null;try{session=JSON.parse(sessionStorage.getItem(storage)||'null')}catch{}
-function save(x){session=x?.access_token?{access_token:x.access_token,refresh_token:x.refresh_token,expires_at:x.expires_at||Math.floor(Date.now()/1000)+(x.expires_in||3600)}:null;try{if(session)sessionStorage.setItem(storage,JSON.stringify(session));else sessionStorage.removeItem(storage)}catch{}}
+let session=null;try{session=JSON.parse(sessionStorage.getItem(storage)||'null');recoveryMode=recoveryMode||!!(session&&sessionStorage.getItem(storage+'-recovery')==='1')}catch{}
+function save(x){session=x?.access_token?{access_token:x.access_token,refresh_token:x.refresh_token,expires_at:x.expires_at||Math.floor(Date.now()/1000)+(x.expires_in||3600)}:null;try{if(session){sessionStorage.setItem(storage,JSON.stringify(session));if(recoveryMode)sessionStorage.setItem(storage+'-recovery','1');else sessionStorage.removeItem(storage+'-recovery')}else{sessionStorage.removeItem(storage);sessionStorage.removeItem(storage+'-recovery')}}catch{}}
 async function request(url,method='GET',body,token){const r=await fetch(base+url,{method,headers:{apikey:key,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});let x;try{x=await r.json()}catch{x={}}if(!r.ok)throw Error(x.error_description||x.msg||x.message||x.error||'Request failed ('+r.status+')');return x}
+if(recoveryMode)save({access_token:fragment.get('access_token'),refresh_token:fragment.get('refresh_token'),expires_in:Number(fragment.get('expires_in'))||3600});
 let refreshing=null;
 async function token(){if(!session)return null;if(session.expires_at>Date.now()/1000+60)return session.access_token;if(!refreshing)refreshing=request('/auth/v1/token?grant_type=refresh_token','POST',{refresh_token:session.refresh_token}).then(x=>{save(x);return session.access_token}).catch(()=>{save(null);return null}).finally(()=>refreshing=null);return refreshing}
-async function api(path,b){if(path==='login'){let x=await request('/auth/v1/token?grant_type=password','POST',{email:b.email,password:b.password});save(x);try{return await api('me')}catch(e){save(null);throw e}}
+async function api(path,b){if(recoveryMode&&!['password','logout'].includes(path))throw Error('Finish password recovery first');if(path==='login'){let x=await request('/auth/v1/token?grant_type=password','POST',{email:b.email,password:b.password});save(x);try{return await api('me')}catch(e){save(null);throw e}}
 if(path==='register'){let x=await request('/auth/v1/signup','POST',{email:b.email,password:b.password,data:{name:b.name||''},gotrue_meta_security:{}});if(x.access_token){save(x);return await api('me')}return {confirmationRequired:true}}
-if(path==='password'){let t=await token();if(!t)throw Error('Sign in required');if(typeof b.password!=='string'||b.password.length<12||new TextEncoder().encode(b.password).length>72||b.password!==b.confirm)throw Error('Invalid new password');await request('/auth/v1/user','PUT',{password:b.password},t);try{await request('/auth/v1/logout?scope=global','POST',{},t)}catch{}finally{save(null)}return {ok:true}}
-if(path==='logout'){let scope=b?.scope||'local';if(!['local','others','global'].includes(scope))throw Error('Invalid session scope');let t=await token();if(!t&&scope!=='local')throw Error('Sign in again to manage sessions');if(t)await request('/auth/v1/logout?scope='+scope,'POST',{},t);if(scope!=='others')save(null);return {ok:true}}
+if(path==='password'){let t=await token();if(!t)throw Error('Sign in required');if(typeof b.password!=='string'||b.password.length<12||new TextEncoder().encode(b.password).length>72||b.password!==b.confirm)throw Error('Invalid new password');await request('/auth/v1/user','PUT',{password:b.password},t);try{await request('/auth/v1/logout?scope=global','POST',{},t)}catch{}finally{save(null);recoveryMode=false}return {ok:true}}
+if(path==='logout'){let scope=b?.scope||'local';if(!['local','others','global'].includes(scope))throw Error('Invalid session scope');let t=await token();if(!t&&scope!=='local')throw Error('Sign in again to manage sessions');if(t)await request('/auth/v1/logout?scope='+scope,'POST',{},t);if(scope!=='others'){save(null);recoveryMode=false}return {ok:true}}
 if(path==='profile'||path==='email'){let t=await token();if(!t)throw Error('Sign in required');let u=await request('/auth/v1/user','GET',undefined,t);if(!u?.id)throw Error('Sign in required');
  if(path==='email'){let email=String(b?.email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254||email===String(u.email).toLowerCase())throw Error('Choose a different valid email');let redirect=new URL('./workspace.html',location.href).href;await request('/auth/v1/user?redirect_to='+encodeURIComponent(redirect),'PUT',{email},t);return {ok:true}}
  const endpoint='/rest/v1/ts_profiles?user_id=eq.'+encodeURIComponent(u.id)+'&select=user_id,name,email,role,active,phone,avatar';
@@ -19,6 +21,23 @@ if(path==='profile'||path==='email'){let t=await token();if(!t)throw Error('Sign
  }else records=await request(endpoint,'GET',undefined,t);
  if(!records?.length)throw Error('Account profile is unavailable');return {...records[0],email:u.email,pendingEmail:u.new_email||'',expiresAt:session?.expires_at||0};
 }
+
+if(path==='pro-ai'){let t=await token();if(!t)throw Error('Sign in required');return request('/functions/v1/techstore-ai','POST',{task:b.task,question:b.question,lang:b.lang,consent:b.consent===true},t)}
+if(path==='pro-recover'){let email=String(b?.email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw Error('Invalid email');let redirect=new URL('./workspace.html',location.href).href;await request('/auth/v1/recover?redirect_to='+encodeURIComponent(redirect),'POST',{email});return {ok:true}}
+if(path.startsWith('pro-')){
+ const t=await token();if(!t)throw Error('Sign in required');
+ const kinds=['branches','cash','vouchers','quotes','payroll','bank','repair_tasks','campaigns','shipping','tradein','reviews','memberships','alerts','favorites','builds'];
+ const kind=b?.kind,validKind=()=>{if(!kinds.includes(kind))throw Error('Unknown module')};
+ const uuid=x=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(x));
+ async function write(endpoint,method,data,prefer='return=representation'){let r=await fetch(base+endpoint,{method,headers:{apikey:key,Authorization:'Bearer '+t,'Content-Type':'application/json',Prefer:prefer},body:JSON.stringify(data),cache:'no-store'});let x;try{x=await r.json()}catch{x=null}if(!r.ok)throw Error(x?.message||'Operation not permitted');return x}
+ if(path==='pro-grants')return request('/rest/v1/ts_pro_grants?select=user_id,module,can_read,can_create&order=module','GET',undefined,t);
+ if(path==='pro-permission'){if(!uuid(b.user_id)||!kinds.slice(0,13).includes(b.module))throw Error('Invalid permission');return write('/rest/v1/ts_pro_grants?on_conflict=user_id,module','POST',{user_id:b.user_id,module:b.module,can_read:b.can_read===true,can_create:b.can_read===true&&b.can_create===true},'resolution=merge-duplicates,return=representation')}
+ if(path==='pro-list'){validKind();let offset=Math.max(0,Math.min(100000,Math.floor(Number(b.offset)||0)));return request('/rest/v1/ts_pro_entries?select=id,actor,kind,title,reference,notes,amount,currency,details,created_at,archived&kind=eq.'+kind+'&archived=eq.'+(b.archived===true?'true':'false')+'&order=created_at.desc,id.desc&limit=100&offset='+offset,'GET',undefined,t)}
+ if(path==='pro-create'){validKind();let amount=Number(b.amount||0);if(!Number.isFinite(amount)||amount<0||amount>99999999999999)throw Error('Invalid amount');let title=String(b.title||'').trim();if(!title||title.length>200)throw Error('Invalid title');return write('/rest/v1/ts_pro_entries','POST',{kind,title,reference:String(b.reference||'').slice(0,200),notes:String(b.notes||'').slice(0,4000),amount,currency:b.currency==='SYP'?'SYP':'USD',details:b.details&&typeof b.details==='object'&&!Array.isArray(b.details)?b.details:{}})}
+ if(path==='pro-archive'){if(!uuid(b.id))throw Error('Invalid record');let x=await write('/rest/v1/ts_pro_entries?id=eq.'+b.id,'PATCH',{archived:b.archived===true});if(!x?.length)throw Error('Not permitted');return x}
+ throw Error('Unknown operation')
+}
+
 let t=await token();return request('/functions/v1/techstore-api?path='+encodeURIComponent('/api/'+path),b===undefined?'GET':'POST',b,t)}
-return {api};
+return {api,isRecovery:()=>recoveryMode};
 })();
