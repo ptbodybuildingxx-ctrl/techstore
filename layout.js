@@ -3,7 +3,7 @@ const TS_NAV_GROUPS=[
  ['overview','نظرة عامة','Overview',['home','shop','advisor','compare','cart','guesttracking','account','productalerts']],
  ['sales','المبيعات والعملاء','Sales & customers',['pos','invoices','orders','guestorders','warranty','invoicewarranties']],
  ['stock','المخزون والمشتريات','Inventory & purchasing',['products','inventory','branchstock','purchases','suppliers','used','returns']],
- ['finance','الإدارة المالية','Finance',['business','debts','installments','report']],
+ ['finance','الإدارة المالية','Finance',['business','invoiceinstallments','debts','installments','report']],
  ['repair','الصيانة','Repairs',['repairs','repairproof','repairintake']],
  ['marketing','المتجر والتسويق','Store & marketing',['offers','coupons','membershippricing','media','builder','versions']],
  ['professional','الأدوات الاحترافية','Professional tools',['pro','ai','sync']],
