@@ -10,6 +10,7 @@
 - [5](v5.md)
 - [4](v4.md)
 - [3](v3.md)
+- [6.3.9 — offline stability candidate](v6.3.9.md)
 - [6.3.8 — stability candidate](v6.3.8.md)
 - [6.3.7 — integrated ledger, loyalty and reconciliation](v6.3.7.md)
 - [6.3.6 — protected workspace reads and legacy return guard](v6.3.6.md)
